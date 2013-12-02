@@ -1,8 +1,9 @@
 import urllib
 from django.shortcuts import render_to_response
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.template import Context, Template
 
 HASH_KEY_NAME = '__hash__'
 
@@ -40,12 +41,43 @@ def hash_aware_login_required(view_function, *wrapper_args, **wrapper_kwargs):
         if request.user.is_authenticated():
             return view_function(request, *args, **kwargs)
 
-        return render_to_response("url_hash_auth.html", {
+        template = Template(_get_template_content())
+        context = Content({
             'hash_input_name': HASH_KEY_NAME,
             'params': params
         })
 
-        return view_function(request, *args, **kwargs)
-
+        return HttpResponse(template.render(context))
 
     return wrapper
+
+
+# Doing this so the application doesn't need to be added to the installed
+# applications list.
+def _get_template_content():
+    return """
+<html>
+    <head></head>
+    <body>
+        <form method="GET" id="hash_submit">
+            <input type="hidden" name="{{ hash_input_name }}" value="">
+            {% for param in params %}
+            <input type="hidden" name="{{ param.k }}" value="{{ param.v }}"/>
+            {% endfor %}
+            <div style="position: absolute; left: -100; top: -100;">
+                <input type="submit">
+            </div>
+            <noscript>
+            <input type="submit" value="Click here to continue"/>
+            </noscript>
+        </form>
+
+        <script>
+            document.getElementById("hash_submit").action = document.location.href;
+            document.getElementsByName("{{ hash_input_name }}")[0].value = document.location.hash;
+            document.getElementById("hash_submit").submit();
+        </script>
+    </body>
+</html>
+"""
+
