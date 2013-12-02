@@ -42,7 +42,7 @@ def hash_aware_login_required(view_function, *wrapper_args, **wrapper_kwargs):
             return view_function(request, *args, **kwargs)
 
         template = Template(_get_template_content())
-        context = Content({
+        context = Context({
             'hash_input_name': HASH_KEY_NAME,
             'params': params
         })
